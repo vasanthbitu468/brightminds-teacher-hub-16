@@ -78,7 +78,7 @@ Deno.serve(async (req) => {
     // Look up student
     const { data: student, error: lookupError } = await supabase
       .from('students')
-      .select('id, name, pin_hash, pin_reset_required')
+      .select('id, name, pin_hash, pin_reset_required, access_token')
       .eq('student_public_id', trimmedId)
       .single();
 
@@ -114,10 +114,24 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Update last_login_at
+    // Ensure last_login_at and access_token are set on the student
+    const updates: Record<string, unknown> = {
+      last_login_at: new Date().toISOString(),
+    };
+
+    let accessToken = (student as any).access_token as string | null;
+
+    // If access_token is missing for this student, generate and persist one
+    if (!accessToken) {
+      const bytes = new Uint8Array(32);
+      crypto.getRandomValues(bytes);
+      accessToken = Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+      updates.access_token = accessToken;
+    }
+
     await supabase
       .from('students')
-      .update({ last_login_at: new Date().toISOString() })
+      .update(updates)
       .eq('id', student.id);
 
     // Create session
@@ -132,9 +146,14 @@ Deno.serve(async (req) => {
         expires_at: expiresAt.toISOString(),
       });
 
+    const origin = req.headers.get('origin') || 'http://localhost:8081';
+    const accessUrl = accessToken ? `${origin}/student-portal?token=${accessToken}` : null;
+
     return new Response(JSON.stringify({
       sessionToken: token,
       expiresAt: expiresAt.toISOString(),
+      accessToken,
+      accessUrl,
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

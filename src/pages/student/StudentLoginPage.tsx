@@ -102,8 +102,22 @@ const StudentLoginPage = () => {
     try {
       const result = await studentAuthAPI.loginPin(studentPublicId.trim(), pin);
       saveStudentSession(result.sessionToken, result.expiresAt, studentPublicId.trim().toUpperCase());
+
+      if (result.accessToken) {
+        localStorage.setItem('student_presigned_token', result.accessToken);
+      }
+
+      const redirectUrl = result.accessUrl || (result.accessToken
+        ? `/student-portal?token=${encodeURIComponent(result.accessToken)}`
+        : '/student/home');
+
       toast.success('Welcome back! 🎉');
-      navigate('/student/home');
+
+      if (redirectUrl.startsWith('http')) {
+        window.location.replace(redirectUrl);
+      } else {
+        navigate(redirectUrl);
+      }
     } catch (err: any) {
       setError(err.message || 'Incorrect PIN');
     } finally {
