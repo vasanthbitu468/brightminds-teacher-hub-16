@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 
 const getAnswers = (attempt) => {
   const fromAnswers = Array.isArray(attempt?.submission_data?.answers)
@@ -36,9 +36,7 @@ const getPerformanceMessage = (accuracy) => {
 };
 
 const StudentResultCard = ({ assignment, attempt }) => {
-  const [showDetails, setShowDetails] = useState(false);
-
-  const { score, totalQuestions, accuracy, feedback, answers } = useMemo(() => {
+  const { score, totalQuestions, accuracy, feedback } = useMemo(() => {
     const answersData = getAnswers(attempt);
 
     const teacherReview = attempt?.submission_data?.teacher_review || {};
@@ -63,7 +61,6 @@ const StudentResultCard = ({ assignment, attempt }) => {
       totalQuestions: safeTotal,
       accuracy: resolvedAccuracy,
       feedback: attempt?.feedback || 'No feedback provided yet.',
-      answers: answersData,
     };
   }, [attempt]);
 
@@ -108,44 +105,6 @@ const StudentResultCard = ({ assignment, attempt }) => {
           style={{ width: `${Math.max(0, Math.min(accuracy, 100))}%` }}
         ></div>
       </div>
-
-      <button
-        type="button"
-        className="view-details-btn mt-4 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50"
-        onClick={() => setShowDetails((prev) => !prev)}
-      >
-        📄 {showDetails ? 'Hide Detailed Result' : 'View Detailed Result'}
-      </button>
-
-      {showDetails && (
-        <div className="mt-4 space-y-3">
-          {answers.length === 0 ? (
-            <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
-              Detailed answers are not available for this submission.
-            </div>
-          ) : (
-            answers.map((item, index) => (
-              <div className="question-review rounded-lg border border-slate-200 p-3" key={item.key || index}>
-                <p className="question text-sm font-semibold text-slate-900">Question: {item.question}</p>
-
-                <p
-                  className={item.is_correct ? 'correct mt-2 rounded-md px-2 py-1 text-sm' : 'wrong mt-2 rounded-md px-2 py-1 text-sm'}
-                  style={
-                    item.is_correct
-                      ? { color: 'green', background: '#e8f8ee' }
-                      : { color: 'red', background: '#fde8e8' }
-                  }
-                >
-                  Your Answer: {String(item.student_answer)}
-                </p>
-
-                <p className="correct-answer mt-2 text-sm text-slate-700">Correct Answer: {String(item.correct_answer)}</p>
-                <p className="mt-1 text-xs font-semibold text-slate-600">Result: {item.is_correct ? 'Correct' : 'Wrong'}</p>
-              </div>
-            ))
-          )}
-        </div>
-      )}
     </div>
   );
 };
